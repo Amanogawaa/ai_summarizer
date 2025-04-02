@@ -17,6 +17,7 @@ export const announcements = sqliteTable('announcements', {
 	title: text('title').notNull().unique(),
 	description: text('description').notNull(),
 	user_id: integer('user_id').references(() => user.id),
+	image_url: text('image_url'),
 	created_at: integer('created_at').default(sql`CURRENT_TIMESTAMP`),
 	updated_at: integer('updated_at')
 });
