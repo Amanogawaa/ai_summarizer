@@ -4,6 +4,7 @@ import { json, error } from '@sveltejs/kit';
 import { writeFile } from 'fs/promises';
 import { join } from 'path';
 import type { RequestHandler } from './$types';
+import { verify_token } from '$lib/utils/token';
 
 const UPLOAD_DIR = join(process.cwd(), 'static', 'uploads');
 
@@ -18,6 +19,8 @@ export const GET: RequestHandler = async () => {
 };
 
 export const POST: RequestHandler = async ({ request }) => {
+	const user = verify_token(request);
+
 	try {
 		const formData = await request.formData();
 

@@ -5,12 +5,13 @@ import { compare } from 'bcrypt';
 import { eq } from 'drizzle-orm';
 import type { RequestHandler } from './$types';
 import { env } from '$env/dynamic/private';
-import { sign } from 'jsonwebtoken';
-import { JWT_SECRET } from '$env/static/private';
+import jwt from 'jsonwebtoken';
 
 export const POST: RequestHandler = async ({ request }) => {
-	const JWT_SECRET = env.JWT_SECRET;
+	const JWT_SECRET =
+		process.env.JWT_SECRET || 'd3fc103a7234e2d00a801043606e44e353595f16ce36eafb33e6cbf2f1178851';
 
+	console.log(JWT_SECRET);
 	if (!JWT_SECRET) throw new Error('JWT is not set');
 
 	try {
@@ -32,7 +33,7 @@ export const POST: RequestHandler = async ({ request }) => {
 			throw error(401, 'Invalid email or password');
 		}
 
-		const token = sign(
+		const token = jwt.sign(
 			{ id: foundUser.id, email: foundUser.email, role: foundUser.role },
 			JWT_SECRET,
 			{
