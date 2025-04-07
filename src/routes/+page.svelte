@@ -45,7 +45,7 @@
 		// Check if user is logged in
 		const token = localStorage.getItem('token');
 		isLoggedIn = !!token;
-		
+
 		loadAnnouncements();
 	});
 
@@ -58,11 +58,21 @@
 
 <div class="announcements-container">
 	<header class="header">
-		<h1 class="site-title">Announcements</h1>
+		<h1 class="site-title">News</h1>
 		<nav class="nav-links">
 			{#if isLoggedIn}
 				<a href="/admin/dashboard" class="nav-link">
-					<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						width="16"
+						height="16"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+					>
 						<rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
 						<line x1="3" y1="9" x2="21" y2="9"></line>
 						<line x1="9" y1="21" x2="9" y2="9"></line>
@@ -73,7 +83,17 @@
 				<!-- Remove the login link -->
 			{/if}
 			<button class="nav-link" on:click={toggleChatbot}>
-				<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					width="16"
+					height="16"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+				>
 					<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
 				</svg>
 				Ask AI
@@ -114,7 +134,7 @@
 						</div>
 						{#if announcement.image_url}
 							<div class="announcement-image">
-								<img src={announcement.image_url} alt={announcement.title}>
+								<img src={announcement.image_url} alt={announcement.title} />
 							</div>
 						{/if}
 					</div>
@@ -125,7 +145,17 @@
 
 	<!-- Fixed chat button for mobile -->
 	<button class="mobile-chat-button" on:click={toggleChatbot} aria-label="Open AI Assistant">
-		<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+		<svg
+			xmlns="http://www.w3.org/2000/svg"
+			width="24"
+			height="24"
+			viewBox="0 0 24 24"
+			fill="none"
+			stroke="currentColor"
+			stroke-width="2"
+			stroke-linecap="round"
+			stroke-linejoin="round"
+		>
 			<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
 		</svg>
 	</button>
@@ -183,12 +213,12 @@
 		background: #f7fafc;
 		color: #4a90e2;
 	}
-	
+
 	.logout-link {
 		background: #f7fafc;
 		color: #e53e3e;
 	}
-	
+
 	.logout-link:hover {
 		background: #fff5f5;
 		color: #c53030;
@@ -266,7 +296,9 @@
 		overflow: hidden;
 		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 		display: flex;
-		transition: transform 0.2s, box-shadow 0.2s;
+		transition:
+			transform 0.2s,
+			box-shadow 0.2s;
 	}
 
 	.announcement-card:hover {
@@ -328,7 +360,9 @@
 		justify-content: center;
 		cursor: pointer;
 		z-index: 100;
-		transition: transform 0.2s, background-color 0.2s;
+		transition:
+			transform 0.2s,
+			background-color 0.2s;
 	}
 
 	.mobile-chat-button:hover {

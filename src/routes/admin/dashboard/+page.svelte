@@ -40,6 +40,7 @@
 	// Handle logout
 	function handleLogout() {
 		localStorage.removeItem('token');
+		localStorage.removeItem('id');
 		goto('/admin/login');
 	}
 
@@ -84,7 +85,7 @@
 			title: announcement.title,
 			description: announcement.description,
 			user_id: announcement.user_id,
-			image_url: announcement.image_url
+			image_url: announcement.image_url || null
 		};
 		imageInput = null;
 	}
@@ -103,40 +104,22 @@
 
 	async function updateAnnouncement() {
 		if (editedAnnouncement.id === null) return;
-		
-		try {
-			let data;
-			let useFormData = false;
 
-			// Check if we need to update the image
+		const id = localStorage.getItem('id') || '';
+
+		try {
+			const formData = new FormData();
+			formData.append('id', editedAnnouncement.id.toString());
+			formData.append('title', editedAnnouncement.title);
+			formData.append('description', editedAnnouncement.description);
+			formData.append('user_id', id);
+
 			if (imageInput && imageInput.length > 0) {
-				useFormData = true;
-				const formData = new FormData();
-				formData.append('id', editedAnnouncement.id.toString());
-				formData.append('title', editedAnnouncement.title);
-				formData.append('description', editedAnnouncement.description);
-				formData.append('user_id', (editedAnnouncement.user_id || 1).toString());
 				formData.append('image', imageInput[0]);
-				
-				data = formData;
-			} else {
-				// Regular JSON data without image update
-				data = {
-					id: editedAnnouncement.id,
-					title: editedAnnouncement.title,
-					description: editedAnnouncement.description,
-					user_id: editedAnnouncement.user_id || 1 // Use default user_id if null
-				};
 			}
 
-			await dataFetch(
-				`/api/announcements/${editedAnnouncement.id}`,
-				'PATCH',
-				data,
-				token,
-				useFormData
-			);
-			
+			await dataFetch(`/api/announcements/${editedAnnouncement.id}`, 'PUT', formData, token);
+
 			// Exit edit mode and refresh announcements
 			cancelEdit();
 			await loadAnnouncements();
@@ -177,27 +160,67 @@
 <div class="dashboard-container">
 	<div class="header-actions">
 		<a href="/" class="nav-link">
-			<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+			<svg
+				xmlns="http://www.w3.org/2000/svg"
+				width="16"
+				height="16"
+				viewBox="0 0 24 24"
+				fill="none"
+				stroke="currentColor"
+				stroke-width="2"
+				stroke-linecap="round"
+				stroke-linejoin="round"
+			>
 				<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
 				<polyline points="9 22 9 12 15 12 15 22"></polyline>
 			</svg>
 			<span>View Public Page</span>
 		</a>
 		<a href="/admin/announcements" class="nav-link">
-			<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+			<svg
+				xmlns="http://www.w3.org/2000/svg"
+				width="16"
+				height="16"
+				viewBox="0 0 24 24"
+				fill="none"
+				stroke="currentColor"
+				stroke-width="2"
+				stroke-linecap="round"
+				stroke-linejoin="round"
+			>
 				<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
 				<path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
 			</svg>
 			<span>Create New</span>
 		</a>
 		<button class="nav-link" on:click={toggleChatbot}>
-			<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+			<svg
+				xmlns="http://www.w3.org/2000/svg"
+				width="16"
+				height="16"
+				viewBox="0 0 24 24"
+				fill="none"
+				stroke="currentColor"
+				stroke-width="2"
+				stroke-linecap="round"
+				stroke-linejoin="round"
+			>
 				<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
 			</svg>
 			<span>AI Assistant</span>
 		</button>
 		<button class="nav-link logout-link" on:click={handleLogout}>
-			<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+			<svg
+				xmlns="http://www.w3.org/2000/svg"
+				width="16"
+				height="16"
+				viewBox="0 0 24 24"
+				fill="none"
+				stroke="currentColor"
+				stroke-width="2"
+				stroke-linecap="round"
+				stroke-linejoin="round"
+			>
 				<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
 				<polyline points="16 17 21 12 16 7"></polyline>
 				<line x1="21" y1="12" x2="9" y2="12"></line>
@@ -225,121 +248,136 @@
 				<p>No announcements have been created yet.</p>
 				<a href="/admin/announcements" class="action-button">Create Your First Announcement</a>
 			</div>
-		{:else}
-			{#if editMode}
-				<div class="edit-form">
-					<h2>Edit Announcement</h2>
-					
-					<div class="form-grid">
-						<div class="form-content">
-							<div class="form-group">
-								<label for="edit-title">Title</label>
-								<input
-									type="text"
-									id="edit-title"
-									bind:value={editedAnnouncement.title}
-									placeholder="Announcement title"
-									required
-								/>
-							</div>
-							<div class="form-group">
-								<label for="edit-description">Description</label>
-								<textarea
-									id="edit-description"
-									bind:value={editedAnnouncement.description}
-									placeholder="Announcement description"
-									rows="6"
-									required
-								></textarea>
-							</div>
-							<div class="form-group">
-								<label for="edit-image">Update Image (Optional)</label>
-								<input
-									type="file"
-									id="edit-image"
-									accept="image/*"
-									bind:files={imageInput}
-								/>
-								<p class="help-text">Leave empty to keep current image</p>
+		{:else if editMode}
+			<div class="edit-form">
+				<h2>Edit Announcement</h2>
+
+				<div class="form-grid">
+					<div class="form-content">
+						<div class="form-group">
+							<label for="edit-title">Title</label>
+							<input
+								type="text"
+								id="edit-title"
+								bind:value={editedAnnouncement.title}
+								placeholder="Announcement title"
+								required
+							/>
+						</div>
+						<div class="form-group">
+							<label for="edit-description">Description</label>
+							<textarea
+								id="edit-description"
+								bind:value={editedAnnouncement.description}
+								placeholder="Announcement description"
+								rows="6"
+								required
+							></textarea>
+						</div>
+						<div class="form-group">
+							<label for="edit-image">Update Image (Optional)</label>
+							<input type="file" id="edit-image" accept="image/*" bind:files={imageInput} />
+							<p class="help-text">Leave empty to keep current image</p>
+						</div>
+					</div>
+
+					{#if editedAnnouncement.image_url}
+						<div class="image-preview">
+							<h3>Current Image</h3>
+							<div class="preview-container">
+								<img src={editedAnnouncement.image_url} alt={editedAnnouncement.title} />
 							</div>
 						</div>
-						
-						{#if editedAnnouncement.image_url}
-							<div class="image-preview">
-								<h3>Current Image</h3>
-								<div class="preview-container">
-									<img src={editedAnnouncement.image_url} alt={editedAnnouncement.title} />
-								</div>
-							</div>
-						{/if}
-					</div>
-					
-					<div class="edit-actions">
-						<button class="cancel-button" on:click={cancelEdit}>Cancel</button>
-						<button class="save-button" on:click={updateAnnouncement}>Save Changes</button>
-					</div>
+					{/if}
 				</div>
-			{:else}
-				<div class="announcements-table-container">
-					<table class="announcements-table">
-						<thead>
+
+				<div class="edit-actions">
+					<button class="cancel-button" on:click={cancelEdit}>Cancel</button>
+					<button class="save-button" on:click={updateAnnouncement}>Save Changes</button>
+				</div>
+			</div>
+		{:else}
+			<div class="announcements-table-container">
+				<table class="announcements-table">
+					<thead>
+						<tr>
+							<th>Title</th>
+							<th>Description</th>
+							<th>Image</th>
+							<th>Created</th>
+							<th>Actions</th>
+						</tr>
+					</thead>
+					<tbody>
+						{#each announcements as announcement}
 							<tr>
-								<th>Title</th>
-								<th>Description</th>
-								<th>Image</th>
-								<th>Created</th>
-								<th>Actions</th>
-							</tr>
-						</thead>
-						<tbody>
-							{#each announcements as announcement}
-								<tr>
-									<td class="title-cell">{announcement.title}</td>
-									<td class="description-cell">
-										<div class="truncated-text">
-											{announcement.description}
+								<td class="title-cell">{announcement.title}</td>
+								<td class="description-cell">
+									<div class="truncated-text">
+										{announcement.description}
+									</div>
+								</td>
+								<td class="image-cell">
+									{#if announcement.image_url}
+										<div class="thumb-container">
+											<img src={announcement.image_url} alt={announcement.title} />
 										</div>
-									</td>
-									<td class="image-cell">
-										{#if announcement.image_url}
-											<div class="thumb-container">
-												<img src={announcement.image_url} alt={announcement.title} />
-											</div>
-										{:else}
-											<span class="no-image">No image</span>
-										{/if}
-									</td>
-									<td class="date-cell">{formatDate(announcement.created_at)}</td>
-									<td class="actions-cell">
-										<button 
-											class="edit-button" 
-											on:click={() => startEditMode(announcement)}
-											title="Edit"
+									{:else}
+										<span class="no-image">No image</span>
+									{/if}
+								</td>
+								<td class="date-cell">{formatDate(announcement.created_at)}</td>
+								<td class="actions-cell">
+									<button
+										class="edit-button"
+										on:click={() => startEditMode(announcement)}
+										title="Edit"
+									>
+										<svg
+											xmlns="http://www.w3.org/2000/svg"
+											width="16"
+											height="16"
+											viewBox="0 0 24 24"
+											fill="none"
+											stroke="currentColor"
+											stroke-width="2"
+											stroke-linecap="round"
+											stroke-linejoin="round"
 										>
-											<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-												<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-												<path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-											</svg>
-										</button>
-										<button 
-											class="delete-button" 
-											on:click={() => openConfirmDialog(announcement.id)}
-											title="Delete"
+											<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+											<path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+										</svg>
+									</button>
+									<button
+										class="delete-button"
+										on:click={() => openConfirmDialog(announcement.id)}
+										title="Delete"
+									>
+										<svg
+											xmlns="http://www.w3.org/2000/svg"
+											width="16"
+											height="16"
+											viewBox="0 0 24 24"
+											fill="none"
+											stroke="currentColor"
+											stroke-width="2"
+											stroke-linecap="round"
+											stroke-linejoin="round"
 										>
-											<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-												<polyline points="3 6 5 6 21 6"></polyline>
-												<path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-												<line x1="10" y1="11" x2="10" y2="17"></line>
-												<line x1="14" y1="11" x2="14" y2="17"></line>
-											</svg>
-										</button>
-									</td>
-								</tr>
-							{/each}
-						</tbody>
-					</table>
-				</div>
-			{/if}
+											<polyline points="3 6 5 6 21 6"></polyline>
+											<path
+												d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
+											></path>
+											<line x1="10" y1="11" x2="10" y2="17"></line>
+											<line x1="14" y1="11" x2="14" y2="17"></line>
+										</svg>
+									</button>
+								</td>
+							</tr>
+						{/each}
+					</tbody>
+				</table>
+			</div>
 		{/if}
 	</div>
 
@@ -351,9 +389,7 @@
 				<p>Are you sure you want to delete this announcement? This action cannot be undone.</p>
 				<div class="confirm-actions">
 					<button class="cancel-button" on:click={closeConfirmDialog}>Cancel</button>
-					<button class="delete-button" on:click={handleDelete}>
-						Delete
-					</button>
+					<button class="delete-button" on:click={handleDelete}> Delete </button>
 				</div>
 			</div>
 		</div>
@@ -361,7 +397,17 @@
 
 	<!-- Fixed chat button for mobile -->
 	<button class="mobile-chat-button" on:click={toggleChatbot} aria-label="Open AI Assistant">
-		<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+		<svg
+			xmlns="http://www.w3.org/2000/svg"
+			width="24"
+			height="24"
+			viewBox="0 0 24 24"
+			fill="none"
+			stroke="currentColor"
+			stroke-width="2"
+			stroke-linecap="round"
+			stroke-linejoin="round"
+		>
 			<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
 		</svg>
 	</button>
@@ -408,12 +454,12 @@
 		transform: translateY(-2px);
 		box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 	}
-	
+
 	.logout-link {
 		background: #f7fafc;
 		color: #e53e3e;
 	}
-	
+
 	.logout-link:hover {
 		background: #fff5f5;
 		color: #c53030;
@@ -667,7 +713,7 @@
 		font-weight: 500;
 	}
 
-	input[type="text"],
+	input[type='text'],
 	textarea {
 		width: 100%;
 		padding: 0.75rem 1rem;
@@ -677,7 +723,7 @@
 		transition: border-color 0.2s;
 	}
 
-	input[type="file"] {
+	input[type='file'] {
 		display: block;
 		padding: 0.5rem 0;
 	}
@@ -742,7 +788,9 @@
 		padding: 2rem;
 		width: 100%;
 		max-width: 500px;
-		box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+		box-shadow:
+			0 10px 15px -3px rgba(0, 0, 0, 0.1),
+			0 4px 6px -2px rgba(0, 0, 0, 0.05);
 	}
 
 	.confirm-dialog h3 {
@@ -784,7 +832,9 @@
 		justify-content: center;
 		cursor: pointer;
 		z-index: 100;
-		transition: transform 0.2s, background-color 0.2s;
+		transition:
+			transform 0.2s,
+			background-color 0.2s;
 	}
 
 	.mobile-chat-button:hover {
@@ -818,4 +868,4 @@
 			width: 100%;
 		}
 	}
-</style> 
+</style>

@@ -9,7 +9,7 @@ import { verify_token } from '$lib/utils/token';
 
 const UPLOAD_DIR = join(process.cwd(), 'static', 'uploads');
 
-export const PATCH: RequestHandler = async ({ request, params }) => {
+export const PUT: RequestHandler = async ({ request, params }) => {
 	const user = verify_token(request);
 
 	try {
