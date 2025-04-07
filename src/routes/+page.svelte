@@ -58,7 +58,7 @@
 
 <div class="announcements-container">
 	<header class="header">
-		<h1 class="site-title">AI Announcements</h1>
+		<h1 class="site-title">Announcements</h1>
 		<nav class="nav-links">
 			{#if isLoggedIn}
 				<a href="/admin/dashboard" class="nav-link">
