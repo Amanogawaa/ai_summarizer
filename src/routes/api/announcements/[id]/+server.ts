@@ -2,35 +2,43 @@ import { db } from '$lib/server/db';
 import { announcements } from '$lib/server/db/schema';
 import { json, error } from '@sveltejs/kit';
 import { writeFile, unlink } from 'fs/promises';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { join } from 'path';
 import type { RequestHandler } from './$types';
 import { verify_token } from '$lib/utils/token';
 
 const UPLOAD_DIR = join(process.cwd(), 'static', 'uploads');
 
-export const PUT: RequestHandler = async ({ request, params }) => {
+export const PATCH: RequestHandler = async ({ request, params }) => {
 	const user = verify_token(request);
 
 	try {
-		const formData = await request.formData();
-
-		const id = Number(formData.get('id'));
-		const title = formData.get('title')?.toString();
-		const description = formData.get('description')?.toString();
-		const user_id = Number(formData.get('user_id'));
-		const image = formData.get('image');
-
+		const id = Number(params.id);
 		if (!id || isNaN(id)) {
-			throw error(400, 'Invalid or missing announcement ID.');
+			throw error(400, 'Invalid announcement ID.');
 		}
 
+		// Find the announcement and verify ownership
 		const existing = await db.query.announcements.findFirst({
 			where: eq(announcements.id, id)
 		});
 
 		if (!existing) {
 			throw error(404, 'Announcement not found.');
+		}
+
+		// Verify the user owns this announcement
+		if (existing.user_id !== user.id) {
+			throw error(403, 'Forbidden: You do not have permission to modify this announcement.');
+		}
+
+		const formData = await request.formData();
+		const title = formData.get('title')?.toString();
+		const description = formData.get('description')?.toString();
+		const image = formData.get('image');
+
+		if (!title || !description) {
+			throw error(400, 'Title and description are required.');
 		}
 
 		let imageUrl = existing.image_url;
@@ -64,31 +72,70 @@ export const PUT: RequestHandler = async ({ request, params }) => {
 			imageUrl = `/uploads/${fileName}`;
 		}
 
+		// Update the announcement (user_id remains the same)
 		const updatedAnnouncement = await db
 			.update(announcements)
-			.set({ title, description, user_id, image_url: imageUrl })
+			.set({ 
+				title, 
+				description, 
+				image_url: imageUrl,
+				updated_at: Math.floor(Date.now() / 1000) 
+			})
 			.where(eq(announcements.id, id))
 			.returning();
 
 		return json({ success: true, data: updatedAnnouncement[0] });
 	} catch (err: any) {
 		console.error('PATCH /api/announcements error:', err);
-		if (err.code === 'SQLITE_CONSTRAINT_FOREIGNKEY') {
-			throw error(400, 'Invalid user_id: The specified user does not exist.');
+		if (err.status) {
+			throw err; // Rethrow HTTP errors
 		}
 		throw error(500, 'Failed to update announcement. Please try again later.');
 	}
 };
 
-export const DELETE: RequestHandler = async ({ params }) => {
+export const DELETE: RequestHandler = async ({ params, request }) => {
 	try {
+		const user = verify_token(request);
 		const id = Number(params.id);
+		
+		if (!id || isNaN(id)) {
+			throw error(400, 'Invalid announcement ID.');
+		}
+		
+		// Find the announcement first
+		const existing = await db.query.announcements.findFirst({
+			where: eq(announcements.id, id)
+		});
+		
+		if (!existing) {
+			throw error(404, 'Announcement not found.');
+		}
+		
+		// Verify the user owns this announcement
+		if (existing.user_id !== user.id) {
+			throw error(403, 'Forbidden: You do not have permission to delete this announcement.');
+		}
+		
+		// Delete the announcement
 		await db.delete(announcements).where(eq(announcements.id, id));
+		
+		// Delete the image if it exists
+		if (existing.image_url) {
+			const imagePath = join(process.cwd(), 'static', existing.image_url);
+			try {
+				await unlink(imagePath);
+			} catch (err) {
+				console.warn('Failed to delete image file:', err);
+			}
+		}
+		
 		return json({ success: true });
 	} catch (err: any) {
-		if (err.code === 'SQLITE_CONSTRAINT_NOTNULL') {
-			throw error(400, 'A required field is missing or null');
+		console.error('DELETE /api/announcements error:', err);
+		if (err.status) {
+			throw err; // Rethrow HTTP errors
 		}
-		throw error(500, 'Failed to create user');
+		throw error(500, 'Failed to delete announcement. Please try again later.');
 	}
 };

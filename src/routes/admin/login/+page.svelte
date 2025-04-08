@@ -14,13 +14,10 @@
 		try {
 			const payload = { email, password };
 			const response = await dataFetch('/api/auth/login', 'POST', payload);
-
-			console.info(response);
-
+			
 			if (response.access_token) {
 				// Store the token in localStorage
 				localStorage.setItem('token', response.access_token);
-				localStorage.setItem('id', response.data.id);
 				message = 'Login successful! Redirecting...';
 				// Redirect to announcements page after successful login
 				setTimeout(() => goto('/admin/announcements'), 1500);

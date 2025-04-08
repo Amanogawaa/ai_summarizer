@@ -3,14 +3,32 @@ import { announcements } from '$lib/server/db/schema';
 import { json, error } from '@sveltejs/kit';
 import { writeFile } from 'fs/promises';
 import { join } from 'path';
+import { eq } from 'drizzle-orm';
 import type { RequestHandler } from './$types';
 import { verify_token } from '$lib/utils/token';
 
 const UPLOAD_DIR = join(process.cwd(), 'static', 'uploads');
 
-export const GET: RequestHandler = async () => {
+export const GET: RequestHandler = async ({ url, request }) => {
 	try {
-		const data = await db.select().from(announcements);
+		// Check if we need to filter by user_id (for multi-user functionality)
+		const userId = url.searchParams.get('userId');
+		
+		let data;
+		if (userId) {
+			// Convert to number and validate
+			const userIdNum = Number(userId);
+			if (isNaN(userIdNum)) {
+				throw error(400, 'Invalid userId parameter');
+			}
+			
+			// Filter announcements by user_id
+			data = await db.select().from(announcements).where(eq(announcements.user_id, userIdNum));
+		} else {
+			// Return all announcements (for public view)
+			data = await db.select().from(announcements);
+		}
+		
 		return json({ data });
 	} catch (err) {
 		console.error('GET /api/announcements error:', err);
@@ -26,19 +44,18 @@ export const POST: RequestHandler = async ({ request }) => {
 
 		const title = formData.get('title')?.toString();
 		const description = formData.get('description')?.toString();
-		const user_id = Number(formData.get('user_id'));
 		const image = formData.get('image');
 
-		if (!title || !description || !user_id) {
+		if (!title || !description) {
 			throw error(
 				400,
-				'Missing required fields: title, description, and user_id must all be provided.'
+				'Missing required fields: title and description must be provided.'
 			);
 		}
-		if (isNaN(user_id)) {
-			throw error(400, 'Invalid user_id: Must be a number.');
-		}
 
+		// Use the user ID from the token
+		const user_id = user.id;
+		
 		let imageUrl = null;
 		if (image && image instanceof File) {
 			if (!image.type.startsWith('image/')) {

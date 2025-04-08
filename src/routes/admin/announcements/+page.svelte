@@ -10,19 +10,46 @@
 	let imageInput: FileList | null = null;
 	let message = '';
 	let isLoading = false;
+	let currentUser: { id: number; email: string; role: string } | null = null;
 
 	// Get token from localStorage
 	const token = localStorage.getItem('token') || '';
-	const id = localStorage.getItem('id') || '';
 
 	if (!token) {
 		goto('/admin/login');
 	}
-
+	
+	// Decode JWT token to get user info
+	function parseJwt(token: string) {
+		try {
+			const base64Url = token.split('.')[1];
+			const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+			const jsonPayload = decodeURIComponent(
+				atob(base64)
+					.split('')
+					.map(function (c) {
+						return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+					})
+					.join('')
+			);
+			return JSON.parse(jsonPayload);
+		} catch (e) {
+			console.error('Invalid token format');
+			return null;
+		}
+	}
+	
+	// Initialize user data on mount
+	onMount(() => {
+		currentUser = parseJwt(token);
+		if (!currentUser) {
+			handleLogout();
+		}
+	});
+	
 	// Handle logout
 	function handleLogout() {
 		localStorage.removeItem('token');
-		localStorage.removeItem('id');
 		goto('/admin/login');
 	}
 
@@ -32,10 +59,14 @@
 		message = '';
 
 		try {
+			// Verify user is logged in
+			if (!currentUser) {
+				throw new Error('You must be logged in to create an announcement');
+			}
+			
 			const formData = new FormData();
 			formData.append('title', title);
 			formData.append('description', description);
-			formData.append('user_id', id);
 
 			// If there's an image, append it to the form data
 			if (imageInput && imageInput.length > 0) {
@@ -44,7 +75,7 @@
 
 			await dataFetch('/api/announcements', 'POST', formData, token);
 			message = 'Announcement created successfully!';
-
+			
 			// Reset form
 			title = '';
 			description = '';
@@ -61,34 +92,14 @@
 <div class="create-announcement-container">
 	<div class="header-actions">
 		<a href="/" class="nav-link">
-			<svg
-				xmlns="http://www.w3.org/2000/svg"
-				width="16"
-				height="16"
-				viewBox="0 0 24 24"
-				fill="none"
-				stroke="currentColor"
-				stroke-width="2"
-				stroke-linecap="round"
-				stroke-linejoin="round"
-			>
+			<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 				<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
 				<polyline points="9 22 9 12 15 12 15 22"></polyline>
 			</svg>
 			<span>View Public Page</span>
 		</a>
 		<a href="/admin/dashboard" class="nav-link">
-			<svg
-				xmlns="http://www.w3.org/2000/svg"
-				width="16"
-				height="16"
-				viewBox="0 0 24 24"
-				fill="none"
-				stroke="currentColor"
-				stroke-width="2"
-				stroke-linecap="round"
-				stroke-linejoin="round"
-			>
+			<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 				<rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
 				<line x1="3" y1="9" x2="21" y2="9"></line>
 				<line x1="9" y1="21" x2="9" y2="9"></line>
@@ -96,33 +107,13 @@
 			<span>Dashboard</span>
 		</a>
 		<button class="nav-link" on:click={toggleChatbot}>
-			<svg
-				xmlns="http://www.w3.org/2000/svg"
-				width="16"
-				height="16"
-				viewBox="0 0 24 24"
-				fill="none"
-				stroke="currentColor"
-				stroke-width="2"
-				stroke-linecap="round"
-				stroke-linejoin="round"
-			>
+			<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 				<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
 			</svg>
 			<span>AI Assistant</span>
 		</button>
 		<button class="nav-link logout-link" on:click={handleLogout}>
-			<svg
-				xmlns="http://www.w3.org/2000/svg"
-				width="16"
-				height="16"
-				viewBox="0 0 24 24"
-				fill="none"
-				stroke="currentColor"
-				stroke-width="2"
-				stroke-linecap="round"
-				stroke-linejoin="round"
-			>
+			<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 				<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
 				<polyline points="16 17 21 12 16 7"></polyline>
 				<line x1="21" y1="12" x2="9" y2="12"></line>
@@ -160,7 +151,12 @@
 
 			<div class="form-group">
 				<label for="image">Image (optional)</label>
-				<input type="file" id="image" accept="image/*" bind:files={imageInput} />
+				<input
+					type="file"
+					id="image"
+					accept="image/*"
+					bind:files={imageInput}
+				/>
 				<p class="help-text">Recommended size: 1200 x 630 pixels</p>
 			</div>
 
@@ -180,22 +176,12 @@
 					{/if}
 				</button>
 			</div>
-		</form>
+</form>
 	</div>
 
 	<!-- Fixed chat button for mobile -->
 	<button class="mobile-chat-button" on:click={toggleChatbot} aria-label="Open AI Assistant">
-		<svg
-			xmlns="http://www.w3.org/2000/svg"
-			width="24"
-			height="24"
-			viewBox="0 0 24 24"
-			fill="none"
-			stroke="currentColor"
-			stroke-width="2"
-			stroke-linecap="round"
-			stroke-linejoin="round"
-		>
+		<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 			<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
 		</svg>
 	</button>
@@ -242,12 +228,12 @@
 		transform: translateY(-2px);
 		box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 	}
-
+	
 	.logout-link {
 		background: #f7fafc;
 		color: #e53e3e;
 	}
-
+	
 	.logout-link:hover {
 		background: #fff5f5;
 		color: #c53030;
@@ -286,7 +272,7 @@
 		font-weight: 500;
 	}
 
-	input[type='text'],
+	input[type="text"],
 	textarea {
 		width: 100%;
 		padding: 0.75rem 1rem;
@@ -296,7 +282,7 @@
 		transition: border-color 0.2s;
 	}
 
-	input[type='file'] {
+	input[type="file"] {
 		display: block;
 		padding: 0.75rem 0;
 	}
@@ -386,9 +372,7 @@
 		justify-content: center;
 		cursor: pointer;
 		z-index: 100;
-		transition:
-			transform 0.2s,
-			background-color 0.2s;
+		transition: transform 0.2s, background-color 0.2s;
 	}
 
 	.mobile-chat-button:hover {

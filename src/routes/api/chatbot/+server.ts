@@ -3,6 +3,8 @@ import type { RequestHandler } from './$types';
 import { db } from '$lib/server/db';
 import { user, announcements } from '$lib/server/db/schema';
 import axios from 'axios';
+import { analyzeAnnouncementSentiment } from '$lib/utils/announcementAI';
+import { eq } from 'drizzle-orm';
 
 // Define message interface
 interface ChatMessage {
@@ -20,6 +22,27 @@ export const POST: RequestHandler = async ({ request }) => {
 
         if (!query) {
             throw error(400, 'Query is required');
+        }
+
+        // Check if this is a sentiment analysis request
+        if (query.toLowerCase().includes('analyze sentiment') || query.toLowerCase().includes('sentiment analysis')) {
+            // Extract announcement ID from the query
+            const idMatch = query.match(/announcement\s+(\d+)/i);
+            if (idMatch) {
+                const announcementId = parseInt(idMatch[1]);
+                const announcement = await db
+                    .select()
+                    .from(announcements)
+                    .where(eq(announcements.id, announcementId))
+                    .limit(1);
+
+                if (announcement.length === 0) {
+                    return json({ message: "I couldn't find that announcement. Please check the ID and try again." });
+                }
+
+                const sentimentResult = await analyzeAnnouncementSentiment(announcement[0]);
+                return json({ message: `Sentiment Analysis Results:\n\nSentiment: ${sentimentResult.sentiment}\nScore: ${Math.round(sentimentResult.score * 100)}%\n\nAnalysis: ${sentimentResult.analysis}` });
+            }
         }
 
         // Fetch data from the database to provide to the model
@@ -47,7 +70,6 @@ export const POST: RequestHandler = async ({ request }) => {
                 id: a.id,
                 title: a.title,
                 description: a.description,
-                user_id: a.user_id,
                 image_url: a.image_url,
                 created_at: a.created_at,
                 updated_at: a.updated_at

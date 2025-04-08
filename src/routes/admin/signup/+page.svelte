@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
+	import { goto } from '$app/navigation'; 
 	import dataFetch from '$lib/utils/service';
 	import ChatbotModal from '$lib/components/ChatbotModal.svelte';
 	import { toggleChatbot } from '$lib/stores/chatbot';
@@ -33,10 +33,10 @@
 		};
 
 		try {
-			const response = await dataFetch('/api/auth', 'POST', userData);
-
+			const response = await dataFetch('/api/users/signup', 'POST', userData);
+			
 			message = 'Sign up successful! Redirecting to login...';
-
+			
 			setTimeout(() => {
 				goto('/admin/login');
 			}, 2000);
@@ -52,34 +52,14 @@
 <div class="container">
 	<div class="header-actions">
 		<a href="/" class="nav-link">
-			<svg
-				xmlns="http://www.w3.org/2000/svg"
-				width="16"
-				height="16"
-				viewBox="0 0 24 24"
-				fill="none"
-				stroke="currentColor"
-				stroke-width="2"
-				stroke-linecap="round"
-				stroke-linejoin="round"
-			>
+			<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 				<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
 				<polyline points="9 22 9 12 15 12 15 22"></polyline>
 			</svg>
 			<span>View Public Page</span>
 		</a>
 		<a href="/admin/dashboard" class="nav-link">
-			<svg
-				xmlns="http://www.w3.org/2000/svg"
-				width="16"
-				height="16"
-				viewBox="0 0 24 24"
-				fill="none"
-				stroke="currentColor"
-				stroke-width="2"
-				stroke-linecap="round"
-				stroke-linejoin="round"
-			>
+			<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 				<rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
 				<line x1="3" y1="9" x2="21" y2="9"></line>
 				<line x1="9" y1="21" x2="9" y2="9"></line>
@@ -87,17 +67,7 @@
 			<span>Dashboard</span>
 		</a>
 		<a href="/admin/login" class="nav-link">
-			<svg
-				xmlns="http://www.w3.org/2000/svg"
-				width="16"
-				height="16"
-				viewBox="0 0 24 24"
-				fill="none"
-				stroke="currentColor"
-				stroke-width="2"
-				stroke-linecap="round"
-				stroke-linejoin="round"
-			>
+			<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 				<path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
 				<polyline points="10 17 15 12 10 7"></polyline>
 				<line x1="15" y1="12" x2="3" y2="12"></line>
@@ -105,17 +75,7 @@
 			<span>Login</span>
 		</a>
 		<button class="nav-link" on:click={toggleChatbot}>
-			<svg
-				xmlns="http://www.w3.org/2000/svg"
-				width="16"
-				height="16"
-				viewBox="0 0 24 24"
-				fill="none"
-				stroke="currentColor"
-				stroke-width="2"
-				stroke-linecap="round"
-				stroke-linejoin="round"
-			>
+			<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 				<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
 			</svg>
 			<span>AI Assistant</span>
@@ -138,7 +98,13 @@
 
 			<div class="form-group">
 				<label for="email">Email</label>
-				<input type="email" id="email" bind:value={email} placeholder="Enter your email" required />
+				<input
+					type="email"
+					id="email"
+					bind:value={email}
+					placeholder="Enter your email"
+					required
+				/>
 			</div>
 
 			<div class="form-group">
@@ -187,17 +153,7 @@
 	</div>
 
 	<button class="mobile-chat-button" on:click={toggleChatbot} aria-label="Open AI Assistant">
-		<svg
-			xmlns="http://www.w3.org/2000/svg"
-			width="24"
-			height="24"
-			viewBox="0 0 24 24"
-			fill="none"
-			stroke="currentColor"
-			stroke-width="2"
-			stroke-linecap="round"
-			stroke-linejoin="round"
-		>
+		<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 			<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
 		</svg>
 	</button>
@@ -376,9 +332,7 @@
 		justify-content: center;
 		cursor: pointer;
 		z-index: 100;
-		transition:
-			transform 0.2s,
-			background-color 0.2s;
+		transition: transform 0.2s, background-color 0.2s;
 	}
 
 	.mobile-chat-button:hover {
