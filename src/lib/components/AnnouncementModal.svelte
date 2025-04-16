@@ -56,13 +56,13 @@
 	// Analyze sentiment
 	async function analyzeSentiment() {
 		if (!announcement) return;
-		
+
 		isAnalyzing = true;
 		try {
 			const response = await dataFetch('/api/chatbot/sentiment', 'POST', {
 				text: `${announcement.title}\n\n${announcement.description}`
 			});
-			
+
 			sentimentResult = response;
 			isSentimentModalOpen = true;
 		} catch (error) {
@@ -79,13 +79,13 @@
 	// Generate summary
 	async function generateSummary() {
 		if (!announcement) return;
-		
+
 		isSummarizing = true;
 		try {
 			const response = await dataFetch('/api/chatbot/summarize', 'POST', {
 				text: `${announcement.title}\n\n${announcement.description}`
 			});
-			
+
 			summaryResult = response.summary;
 			isSummaryModalOpen = true;
 		} catch (error) {
@@ -103,10 +103,26 @@
 <svelte:window on:keydown={handleKeydown} />
 
 {#if isOpen && announcement}
-	<div class="modal-overlay" on:click={close} on:keydown={handleKeydown} role="dialog" aria-modal="true">
+	<div
+		class="modal-overlay"
+		on:click={close}
+		on:keydown={handleKeydown}
+		role="dialog"
+		aria-modal="true"
+	>
 		<div class="modal-container" on:click|stopPropagation>
 			<button class="close-button" on:click={close} aria-label="Close modal">
-				<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					width="24"
+					height="24"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+				>
 					<line x1="18" y1="6" x2="6" y2="18"></line>
 					<line x1="6" y1="6" x2="18" y2="18"></line>
 				</svg>
@@ -114,17 +130,7 @@
 
 			<div class="modal-content">
 				<h2>{announcement.title}</h2>
-				
-				{#if announcement.image_url}
-					<div class="announcement-image">
-						<img src={announcement.image_url} alt={announcement.title} />
-					</div>
-				{/if}
-				
-				<div class="announcement-description">
-					<p>{announcement.description}</p>
-				</div>
-				
+
 				<div class="announcement-meta">
 					<time datetime={announcement.created_at}>
 						{formatDate(announcement.created_at)}
@@ -134,12 +140,32 @@
 					{/if}
 				</div>
 
+				{#if announcement.image_url}
+					<div class="announcement-image">
+						<img src={announcement.image_url} alt={announcement.title} />
+					</div>
+				{/if}
+
+				<div class="announcement-description">
+					<p>{announcement.description}</p>
+				</div>
+
 				<div class="action-buttons">
 					<button class="summary-button" on:click={generateSummary} disabled={isSummarizing}>
 						{#if isSummarizing}
 							<div class="spinner"></div>
 						{:else}
-							<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								width="16"
+								height="16"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+							>
 								<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
 								<polyline points="14 2 14 8 20 8"></polyline>
 								<line x1="16" y1="13" x2="8" y2="13"></line>
@@ -153,8 +179,20 @@
 						{#if isAnalyzing}
 							<div class="spinner"></div>
 						{:else}
-							<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-								<path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path>
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								width="16"
+								height="16"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+							>
+								<path
+									d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"
+								></path>
 							</svg>
 							Analyze Sentiment
 						{/if}
@@ -165,9 +203,9 @@
 	</div>
 {/if}
 
-<SentimentAnalysisModal 
+<SentimentAnalysisModal
 	bind:isOpen={isSentimentModalOpen}
-	sentimentResult={sentimentResult}
+	{sentimentResult}
 	on:close={closeSentimentModal}
 />
 
@@ -195,7 +233,9 @@
 	.modal-container {
 		background-color: white;
 		border-radius: 8px;
-		box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+		box-shadow:
+			0 10px 15px -3px rgba(0, 0, 0, 0.1),
+			0 4px 6px -2px rgba(0, 0, 0, 0.05);
 		position: relative;
 		width: 100%;
 		max-width: 800px;
@@ -217,7 +257,9 @@
 		align-items: center;
 		justify-content: center;
 		cursor: pointer;
-		transition: background-color 0.2s, color 0.2s;
+		transition:
+			background-color 0.2s,
+			color 0.2s;
 		z-index: 10;
 	}
 
@@ -264,8 +306,7 @@
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
-		padding-top: 1rem;
-		border-top: 1px solid #e2e8f0;
+		padding-bottom: 1rem;
 		color: #718096;
 		font-size: 0.9rem;
 	}
@@ -349,4 +390,4 @@
 			justify-content: center;
 		}
 	}
-</style> 
+</style>
