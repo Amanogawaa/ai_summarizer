@@ -113,7 +113,7 @@ ${query}
         try {
             // Call the local Llama 3.1 API
             const response = await axios.post(LLAMA_API_URL, {
-                model: "llama3.1:latest",
+                model: "llama3.2:1b",
                 prompt: prompt,
                 stream: false,
                 temperature: 0.7,
