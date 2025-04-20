@@ -5,6 +5,7 @@ import { user, announcements } from '$lib/server/db/schema';
 import axios from 'axios';
 import { analyzeAnnouncementSentiment } from '$lib/utils/announcementAI';
 import { eq } from 'drizzle-orm';
+import type { Announcement } from '$lib/types';
 
 // Define message interface
 interface ChatMessage {
@@ -40,7 +41,18 @@ export const POST: RequestHandler = async ({ request }) => {
                     return json({ message: "I couldn't find that announcement. Please check the ID and try again." });
                 }
 
-                const sentimentResult = await analyzeAnnouncementSentiment(announcement[0]);
+                // Cast the announcement to the proper type to fix the error
+                const announcementData: Announcement = {
+                    id: announcement[0].id,
+                    title: announcement[0].title,
+                    description: announcement[0].description,
+                    user_id: announcement[0].user_id,
+                    image_url: announcement[0].image_url,
+                    created_at: announcement[0].created_at ? new Date(announcement[0].created_at).toISOString() : new Date().toISOString(),
+                    updated_at: announcement[0].updated_at ? new Date(announcement[0].updated_at).toISOString() : null
+                };
+
+                const sentimentResult = await analyzeAnnouncementSentiment(announcementData);
                 return json({ message: `Sentiment Analysis Results:\n\nSentiment: ${sentimentResult.sentiment}\nScore: ${Math.round(sentimentResult.score * 100)}%\n\nAnalysis: ${sentimentResult.analysis}` });
             }
         }
@@ -113,7 +125,7 @@ ${query}
         try {
             // Call the local Llama 3.1 API
             const response = await axios.post(LLAMA_API_URL, {
-                model: "llama3.2:1b",
+                model: "llama3.1:latest",
                 prompt: prompt,
                 stream: false,
                 temperature: 0.7,

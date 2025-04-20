@@ -14,7 +14,7 @@ export const user = sqliteTable('user', {
 
 export const announcements = sqliteTable('announcements', {
 	id: integer('id').primaryKey({ autoIncrement: true }).unique(),
-	title: text('title').notNull().unique(),
+	title: text('title').notNull(),
 	description: text('description').notNull(),
 	user_id: integer('user_id').references(() => user.id),
 	image_url: text('image_url'),

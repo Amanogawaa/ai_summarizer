@@ -5,6 +5,8 @@
 	import ChatbotModal from '$lib/components/ChatbotModal.svelte';
 	import AnnouncementModal from '$lib/components/AnnouncementModal.svelte';
 	import { toggleChatbot } from '$lib/stores/chatbot';
+	import { browser } from '$app/environment';
+	import { requireAuth, logout, getCurrentUser } from '$lib/utils/auth';
 
 	type Announcement = {
 		id: number;
@@ -40,49 +42,26 @@
 		image_url: null as string | null
 	};
 
-	// Get token from localStorage
-	const token = localStorage.getItem('token') || '';
-
-	if (!token) {
-		goto('/admin/login');
-	}
-
-	// Decode JWT token to get user info
-	function parseJwt(token: string) {
-		try {
-			const base64Url = token.split('.')[1];
-			const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-			const jsonPayload = decodeURIComponent(
-				atob(base64)
-					.split('')
-					.map(function (c) {
-						return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-					})
-					.join('')
-			);
-			return JSON.parse(jsonPayload);
-		} catch (e) {
-			console.error('Invalid token format');
-			return null;
-		}
-	}
-
-	// Handle logout
-	function handleLogout() {
-		localStorage.removeItem('token');
-		goto('/admin/login');
-	}
+	// We'll initialize token in onMount to avoid SSR issues
+	let token = '';
 
 	// Fetch announcements
 	async function loadAnnouncements() {
 		isLoading = true;
 		error = '';
 		try {
-			// Get current user information from token
-			currentUser = parseJwt(token);
+			// Make sure user is authenticated
 			if (!currentUser) {
-				handleLogout();
-				return;
+				currentUser = getCurrentUser();
+				if (!currentUser) {
+					logout();
+					return;
+				}
+			}
+			
+			// Get token (will be handled by dataFetch if not provided)
+			if (browser) {
+				token = localStorage.getItem('token') || '';
 			}
 
 			// Fetch only this user's announcements
@@ -205,27 +184,11 @@
 
 	// Load announcements on mount
 	onMount(async () => {
-		const token = localStorage.getItem('token');
-		if (!token) {
-			goto('/admin/login');
-			return;
+		// Redirect if not authenticated
+		currentUser = requireAuth();
+		if (currentUser) {
+			await loadAnnouncements();
 		}
-
-		// Parse token to get user info
-		try {
-			const tokenData = JSON.parse(atob(token.split('.')[1]));
-			currentUser = {
-				id: tokenData.id,
-				email: tokenData.email,
-				role: tokenData.role
-			};
-		} catch (e) {
-			localStorage.removeItem('token');
-			goto('/admin/login');
-			return;
-		}
-
-		await loadAnnouncements();
 	});
 
 	const openAnnouncementModal = (announcement: Announcement) => {
@@ -239,7 +202,6 @@
 	};
 
 	const fetchAnnouncements = async () => {
-		// Placeholder for reapplied function, removing this later
 		await loadAnnouncements();
 	};
 </script>
@@ -296,7 +258,7 @@
 			</svg>
 			<span>AI Assistant</span>
 		</button>
-		<button class="nav-link logout-link" on:click={handleLogout}>
+		<button class="nav-link logout-link" on:click={logout}>
 			<svg
 				xmlns="http://www.w3.org/2000/svg"
 				width="16"

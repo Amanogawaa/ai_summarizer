@@ -32,16 +32,30 @@ export const PATCH: RequestHandler = async ({ request, params }) => {
 			throw error(403, 'Forbidden: You do not have permission to modify this announcement.');
 		}
 
-		const formData = await request.formData();
-		const title = formData.get('title')?.toString();
-		const description = formData.get('description')?.toString();
-		const image = formData.get('image');
+		let title: string | null = null;
+		let description: string | null = null;
+		let image: File | null = null;
+		let imageUrl = existing.image_url;
+
+		// Check content type to determine how to parse the request
+		const contentType = request.headers.get('content-type') || '';
+		
+		if (contentType.includes('application/json')) {
+			// Parse JSON request
+			const jsonData = await request.json();
+			title = jsonData.title;
+			description = jsonData.description;
+		} else {
+			// Parse FormData request
+			const formData = await request.formData();
+			title = formData.get('title')?.toString() || null;
+			description = formData.get('description')?.toString() || null;
+			image = formData.get('image') as File | null;
+		}
 
 		if (!title || !description) {
 			throw error(400, 'Title and description are required.');
 		}
-
-		let imageUrl = existing.image_url;
 
 		if (image && image instanceof File) {
 			if (!image.type.startsWith('image/')) {

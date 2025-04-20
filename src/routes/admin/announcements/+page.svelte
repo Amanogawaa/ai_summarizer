@@ -4,6 +4,8 @@
 	import { goto } from '$app/navigation';
 	import ChatbotModal from '$lib/components/ChatbotModal.svelte';
 	import { toggleChatbot } from '$lib/stores/chatbot';
+	import { browser } from '$app/environment';
+	import { requireAuth, logout } from '$lib/utils/auth';
 
 	let title = '';
 	let description = '';
@@ -12,80 +14,70 @@
 	let isLoading = false;
 	let currentUser: { id: number; email: string; role: string } | null = null;
 
-	// Get token from localStorage
-	const token = localStorage.getItem('token') || '';
-
-	if (!token) {
-		goto('/admin/login');
-	}
-	
-	// Decode JWT token to get user info
-	function parseJwt(token: string) {
-		try {
-			const base64Url = token.split('.')[1];
-			const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-			const jsonPayload = decodeURIComponent(
-				atob(base64)
-					.split('')
-					.map(function (c) {
-						return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-					})
-					.join('')
-			);
-			return JSON.parse(jsonPayload);
-		} catch (e) {
-			console.error('Invalid token format');
-			return null;
-		}
-	}
+	// Initialize token in onMount to avoid SSR issues
+	let token = '';
 	
 	// Initialize user data on mount
 	onMount(() => {
-		currentUser = parseJwt(token);
-		if (!currentUser) {
-			handleLogout();
+		// Check authentication and get user data
+		currentUser = requireAuth();
+		
+		// Get token for API calls
+		if (browser) {
+			token = localStorage.getItem('token') || '';
 		}
 	});
 	
-	// Handle logout
-	function handleLogout() {
-		localStorage.removeItem('token');
-		goto('/admin/login');
-	}
-
 	// Create announcement
 	async function createAnnouncement() {
+		if (!title || !description) {
+			message = 'Title and description are required';
+			return;
+		}
+
+		if (!currentUser) {
+			message = 'You must be logged in to create announcements';
+			return;
+		}
+
 		isLoading = true;
 		message = '';
 
 		try {
-			// Verify user is logged in
-			if (!currentUser) {
-				throw new Error('You must be logged in to create an announcement');
-			}
-			
+			// Prepare the form data with the image if it exists
 			const formData = new FormData();
 			formData.append('title', title);
 			formData.append('description', description);
+			formData.append('user_id', currentUser.id.toString());
 
-			// If there's an image, append it to the form data
 			if (imageInput && imageInput.length > 0) {
 				formData.append('image', imageInput[0]);
 			}
 
+			// Send the request with the token
 			await dataFetch('/api/announcements', 'POST', formData, token);
-			message = 'Announcement created successfully!';
-			
-			// Reset form
+
+			// Reset the form
 			title = '';
 			description = '';
 			imageInput = null;
+			message = 'Announcement created successfully!';
+
+			// Clear success message after 3 seconds
+			setTimeout(() => {
+				message = '';
+			}, 3000);
 		} catch (err: any) {
-			message = err.message || 'Error creating announcement. Please try again.';
+			message = err.message || 'Failed to create announcement. Please try again.';
 			console.error(err);
 		} finally {
 			isLoading = false;
 		}
+	}
+
+	// Go to dashboard
+	function goToDashboard() {
+		goto('/admin/dashboard');
 	}
 </script>
 
@@ -112,7 +104,7 @@
 			</svg>
 			<span>AI Assistant</span>
 		</button>
-		<button class="nav-link logout-link" on:click={handleLogout}>
+		<button class="nav-link logout-link" on:click={logout}>
 			<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 				<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
 				<polyline points="16 17 21 12 16 7"></polyline>
@@ -176,7 +168,7 @@
 					{/if}
 				</button>
 			</div>
-</form>
+		</form>
 	</div>
 
 	<!-- Fixed chat button for mobile -->

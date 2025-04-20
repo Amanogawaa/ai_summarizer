@@ -26,6 +26,11 @@ export default async function dataFetch(
 	responseType?: ResponseType
 ) {
 	try {
+		// If token is not provided but we're in a browser environment, try to get from localStorage
+		if (!token && typeof window !== 'undefined') {
+			token = localStorage.getItem('token') || undefined;
+		}
+
 		const isFormData = data instanceof FormData;
 
 		const response = await api.request({
@@ -38,7 +43,15 @@ export default async function dataFetch(
 		return response.data;
 	} catch (error: unknown) {
 		if (error instanceof Error) {
-			console.log(token);
+			// Avoid logging token to console for security
+			console.error('API Request Error:', error.message);
+			
+			// If there's a 401 error, clear token and redirect to login
+			if (axios.isAxiosError(error) && error.response?.status === 401 && typeof window !== 'undefined') {
+				localStorage.removeItem('token');
+				window.location.href = '/admin/login';
+			}
+			
 			throw new Error(error.message);
 		} else {
 			throw new Error('An unknown error occurred');
