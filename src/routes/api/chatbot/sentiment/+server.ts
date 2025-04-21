@@ -9,6 +9,8 @@ export async function POST({ request }) {
 			return json({ error: 'Text is required' }, { status: 400 });
 		}
 
+		console.log('hello world');
+
 		// Call the chatbot API with a specific prompt for sentiment analysis
 		const response = await dataFetch('/api/chatbot', 'POST', {
 			query: `Analyze the sentiment of this text and provide a precise analysis. Consider:
@@ -24,20 +26,25 @@ Be precise in your sentiment assessment and score.`,
 
 		// Parse the chatbot's response to extract sentiment information
 		const sentimentResponse = response.message;
-		
+
 		// Extract sentiment and score using more sophisticated pattern matching
-		const sentimentMatch = sentimentResponse.match(/sentiment:\s*(very positive|positive|slightly positive|neutral|slightly negative|negative|very negative)/i);
+		const sentimentMatch = sentimentResponse.match(
+			/sentiment:\s*(very positive|positive|slightly positive|neutral|slightly negative|negative|very negative)/i
+		);
 		const scoreMatch = sentimentResponse.match(/score:\s*(\d+)/i);
-		
+
 		let sentiment = 'Neutral';
 		let score = 0.5;
-		
+
 		if (sentimentMatch) {
 			const rawSentiment = sentimentMatch[1].toLowerCase();
 			// Convert detailed sentiment to basic sentiment for display
-			sentiment = rawSentiment.includes('positive') ? 'Positive' :
-				rawSentiment.includes('negative') ? 'Negative' : 'Neutral';
-			
+			sentiment = rawSentiment.includes('positive')
+				? 'Positive'
+				: rawSentiment.includes('negative')
+					? 'Negative'
+					: 'Neutral';
+
 			// Set score based on detailed sentiment
 			switch (rawSentiment) {
 				case 'very positive':
@@ -63,12 +70,12 @@ Be precise in your sentiment assessment and score.`,
 					break;
 			}
 		}
-		
+
 		if (scoreMatch) {
 			const rawScore = parseInt(scoreMatch[1]);
 			// Convert 0-100 score to 0-1 range
 			score = rawScore / 100;
-			
+
 			// Ensure score aligns with sentiment
 			if (sentiment === 'Negative' && score > 0.4) {
 				score = Math.min(0.3, score); // Cap negative sentiment scores
@@ -97,4 +104,4 @@ Be precise in your sentiment assessment and score.`,
 		console.error('Error in sentiment analysis:', error);
 		return json({ error: 'Failed to analyze sentiment' }, { status: 500 });
 	}
-} 
+}
