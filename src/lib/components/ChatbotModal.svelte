@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, afterUpdate } from 'svelte';
 	import dataFetch from '$lib/utils/service';
 	import { fade, fly } from 'svelte/transition';
 	import { isChatbotOpen, closeChatbot } from '$lib/stores/chatbot';
@@ -14,6 +14,7 @@
 	let newMessage = '';
 	let isProcessing = false;
 	let chatContainer: HTMLElement;
+	let autoScroll = true;
 
 	// Load initial greeting message from the bot
 	onMount(() => {
@@ -27,10 +28,25 @@
 	});
 
 	// Scroll to bottom when messages update
-	$: if (messages && chatContainer) {
-		setTimeout(() => {
-			chatContainer.scrollTop = chatContainer.scrollHeight;
-		}, 0);
+	function scrollToBottom() {
+		if (chatContainer && autoScroll) {
+			chatContainer.scrollTo({
+				top: chatContainer.scrollHeight,
+				behavior: 'smooth'
+			});
+		}
+	}
+
+	// Use afterUpdate to ensure scrolling happens after the DOM is updated
+	afterUpdate(scrollToBottom);
+
+	// Check if user has manually scrolled up (don't auto-scroll if they're reading history)
+	function handleScroll() {
+		if (!chatContainer) return;
+		
+		const distanceFromBottom = chatContainer.scrollHeight - chatContainer.clientHeight - chatContainer.scrollTop;
+		// If user is more than 100px from bottom, disable auto-scroll
+		autoScroll = distanceFromBottom < 100;
 	}
 
 	async function sendMessage() {
@@ -44,6 +60,9 @@
 		};
 		
 		messages = [...messages, userMessage];
+		
+		// Re-enable auto-scroll when sending a new message
+		autoScroll = true;
 		
 		// Clear input field
 		const userQuery = newMessage;
@@ -117,7 +136,7 @@
 			</button>
 		</div>
 
-		<div class="chat-window" bind:this={chatContainer}>
+		<div class="chat-window" bind:this={chatContainer} on:scroll={handleScroll}>
 			{#each messages as message}
 				<div class="message {message.role}">
 					<div class="message-content">
@@ -228,6 +247,7 @@
 		display: flex;
 		flex-direction: column;
 		gap: 1rem;
+		scroll-behavior: smooth;
 	}
 
 	.message {
