@@ -9,8 +9,6 @@ export async function POST({ request }) {
 			return json({ error: 'Text is required' }, { status: 400 });
 		}
 
-		console.log('hello world');
-
 		// Call the chatbot API with a specific prompt for sentiment analysis
 		const response = await dataFetch('/api/chatbot', 'POST', {
 			query: `Analyze the sentiment of this text and provide a precise analysis. Consider:
@@ -27,22 +25,67 @@ Be precise in your sentiment assessment and score. Format your response with cle
 		// Parse the chatbot's response to extract sentiment information
 		const sentimentResponse = response.message;
 		
-		// Extract sentiment and score using more sophisticated pattern matching
-		const sentimentMatch = sentimentResponse.match(/sentiment:\s*(very positive|positive|slightly positive|neutral|slightly negative|negative|very negative)/i);
-		const scoreMatch = sentimentResponse.match(/score:\s*(\d+)/i);
+		// Improved pattern matching for sentiment extraction
+		const sentimentMatch = sentimentResponse.match(/sentiment:\s*(very positive|positive|slightly positive|neutral|slightly negative|negative|very negative)/i) || 
+			sentimentResponse.match(/(very positive|positive|slightly positive|neutral|slightly negative|negative|very negative)\s*sentiment/i) ||
+			sentimentResponse.match(/overall.*?(very positive|positive|slightly positive|neutral|slightly negative|negative|very negative)/i);
+		
+		const scoreMatch = sentimentResponse.match(/score:\s*(\d+)/i) ||
+			sentimentResponse.match(/(\d+)\s*\/\s*100/i) ||
+			sentimentResponse.match(/rated.*?(\d+)/i);
 		
 		let sentiment = 'Neutral';
 		let score = 0.5;
 		
+		// Content-based keyword detection for strongly negative content
+		const negativeKeywords = [
+			'tragic', 'death', 'died', 'killed', 'accident', 'disaster', 'fire',
+			'fatal', 'victim', 'grief', 'mourning', 'catastrophe', 'devastat', 
+			'suicide', 'murder', 'assault', 'trauma', 'heartbreak', 'crisis',
+			'terrible', 'horrible', 'awful', 'worst', 'suffer', 'misery'
+		];
+		
+		// Content-based keyword detection for strongly positive content
+		const positiveKeywords = [
+			'amazing', 'excellent', 'outstanding', 'wonderful', 'fantastic',
+			'brilliant', 'triumph', 'success', 'achievement', 'celebrate',
+			'breakthrough', 'inspiring', 'delightful', 'joyful', 'happy',
+			'thrilled', 'ecstatic', 'perfect', 'extraordinary', 'remarkable',
+			'innovative', 'revolutionary', 'incredible', 'impressive', 'awesome',
+			'grateful', 'blessing', 'love', 'praise', 'award', 'victory'
+		];
+		
+		const lowercaseText = text.toLowerCase();
+		const negativeKeywordMatches = negativeKeywords.filter(keyword => 
+			lowercaseText.includes(keyword.toLowerCase())
+		);
+		
+		const positiveKeywordMatches = positiveKeywords.filter(keyword => 
+			lowercaseText.includes(keyword.toLowerCase())
+		);
+		
+		// Determine content sentiment based on keyword density
+		const hasStrongNegativeContent = negativeKeywordMatches.length >= 2 || 
+			(lowercaseText.includes('death') || lowercaseText.includes('died') || 
+			lowercaseText.includes('killed') || lowercaseText.includes('tragic'));
+			
+		const hasStrongPositiveContent = positiveKeywordMatches.length >= 2 || 
+			(lowercaseText.includes('amazing') || lowercaseText.includes('breakthrough') || 
+			lowercaseText.includes('excellent') || lowercaseText.includes('outstanding'));
+		
+		// Detect celebratory language patterns
+		const hasCelebratoryLanguage = /celebrat(e|ion|ing)|achievement|award|honor|milestone|breakthrough|success story/.test(lowercaseText);
+		
+		// Calculate keyword density for both positive and negative
+		const negativeKeywordDensity = negativeKeywordMatches.length / text.split(' ').length;
+		const positiveKeywordDensity = positiveKeywordMatches.length / text.split(' ').length;
+		
 		if (sentimentMatch) {
 			const rawSentiment = sentimentMatch[1].toLowerCase();
 			// Convert detailed sentiment to basic sentiment for display
-			sentiment = rawSentiment.includes('positive')
-				? 'Positive'
-				: rawSentiment.includes('negative')
-					? 'Negative'
-					: 'Neutral';
-
+			sentiment = rawSentiment.includes('positive') ? 'Positive' :
+				rawSentiment.includes('negative') ? 'Negative' : 'Neutral';
+			
 			// Set score based on detailed sentiment
 			switch (rawSentiment) {
 				case 'very positive':
@@ -69,11 +112,33 @@ Be precise in your sentiment assessment and score. Format your response with cle
 			}
 		}
 		
-		if (scoreMatch) {
+		// Override sentiment based on content analysis
+		if (hasStrongNegativeContent && !hasStrongPositiveContent) {
+			sentiment = 'Negative';
+			score = negativeKeywordMatches.length >= 3 ? 0.1 : 0.2; // More keywords = more negative
+		} else if (hasStrongPositiveContent && !hasStrongNegativeContent) {
+			sentiment = 'Positive';
+			// Calculate positive score based on keyword density and celebratory language
+			score = 0.8 + (positiveKeywordMatches.length * 0.02);
+			if (hasCelebratoryLanguage) score += 0.05;
+			score = Math.min(score, 0.98); // Cap at 0.98
+		} else if (hasStrongPositiveContent && hasStrongNegativeContent) {
+			// Mixed sentiment, decide based on keyword density
+			if (positiveKeywordDensity > negativeKeywordDensity) {
+				sentiment = 'Positive';
+				score = 0.6 + (0.1 * (positiveKeywordDensity / (positiveKeywordDensity + negativeKeywordDensity)));
+			} else {
+				sentiment = 'Negative';
+				score = 0.4 - (0.1 * (negativeKeywordDensity / (positiveKeywordDensity + negativeKeywordDensity)));
+			}
+		}
+		
+		if (scoreMatch && !hasStrongNegativeContent && !hasStrongPositiveContent) { 
+			// Only use the score if not overridden by keyword analysis
 			const rawScore = parseInt(scoreMatch[1]);
 			// Convert 0-100 score to 0-1 range
 			score = rawScore / 100;
-
+			
 			// Ensure score aligns with sentiment
 			if (sentiment === 'Negative' && score > 0.4) {
 				score = 0.2; // Force lower score for negative sentiment
@@ -111,4 +176,4 @@ Be precise in your sentiment assessment and score. Format your response with cle
 		console.error('Error in sentiment analysis:', error);
 		return json({ error: 'Failed to analyze sentiment' }, { status: 500 });
 	}
-}
+} 
